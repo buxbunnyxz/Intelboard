@@ -6,6 +6,7 @@ use App\Models\Driver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Smalot\PdfParser\Parser; // Composer: smalot/pdfparser
+use App\Models\Calculation;
 
 class PaymentController extends Controller
 {
@@ -13,6 +14,25 @@ class PaymentController extends Controller
     {
         $drivers = Driver::all();
         return view('payments', compact('drivers'));
+    }
+
+        public function show($driver_id, $week)
+    {
+        $driver = Driver::findOrFail($driver_id);
+
+        if (is_numeric($week)) {
+            $weekNumber = (int) $week;
+        } elseif (preg_match('/(\d{1,2})$/', (string) $week, $m)) {
+            $weekNumber = (int) $m[1];
+        } else {
+            $weekNumber = (int) preg_replace('/\D+/', '', (string) $week);
+        }
+
+        $calculation = Calculation::where('driver_id', $driver_id)
+            ->where('week_number', $weekNumber)
+            ->firstOrFail();
+
+        return view('paydetails', compact('driver', 'calculation', 'week'));
     }
 
     public function batchUpload(Request $request)

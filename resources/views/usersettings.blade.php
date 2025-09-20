@@ -191,7 +191,7 @@
                     @endif
 
                     <div class="mt-2">
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-dark ">
                             <i class="mdi mdi-content-save me-1"></i>
                             <span>{{ __('messages.confirm') }}</span>
                         </button>

@@ -2,77 +2,88 @@
     $currentLocale = app()->getLocale();
 @endphp
 
-<div class="navbar-custom topnav-navbar-dark">
-    {{-- Mobile centered logo (only visible < lg) --}}
-    <div class="mobile-centered-logo d-lg-none">
-        {{-- If you want it clickable, remove pointer-events:none in CSS and wrap with <a href="{{ route('drivers') }}"> --}}
-        <a href="{{ route('home') }}"><img src="{{ asset('assets/images/logo.svg') }}" alt="Logo"
-                class="mobile-logo-img"></a>
-    </div>
+<div class="navbar-custom topnav-navbar topnav-navbar-dark">
+    <div class="container-fluid">
 
-    <ul class="list-unstyled topbar-menu float-end mb-0">
-        <li class="dropdown notification-list topbar-dropdown">
-            <a class="text-white nav-link dropdown-toggle arrow-none" data-bs-toggle="dropdown" href="#"
-                role="button">
-                @if ($currentLocale === 'fr')
-                    <img src="{{ asset('assets/images/flags/france.jpg') }}" alt="flag" height="12">
-                    <span class="text-white align-middle d-none d-sm-inline-block">Français</span>
-                @else
-                    <img src="{{ asset('assets/images/flags/us.jpg') }}" alt="flag" height="12">
-                    <span class="text-white align-middle d-none d-sm-inline-block">English</span>
-                @endif
-                <i class="mdi mdi-chevron-down d-none d-sm-inline-block align-middle"></i>
-            </a>
-            <div class="dropdown-menu dropdown-menu-end dropdown-menu-animated topbar-dropdown-menu">
-                @foreach (config('app.available_locales') as $locale)
-                    <a href="{{ route('lang.switch', ['locale' => $locale]) }}" class="dropdown-item notify-item">
-                        <img src="{{ asset("assets/images/flags/$locale.jpg") }}" alt="{{ strtoupper($locale) }}"
-                            class="me-1" height="12">
-                        @if ($locale === 'fr')
-                            Français
-                        @else
-                            English
-                        @endif
-                    </a>
-                @endforeach
-            </div>
-        </li>
+        <!-- LOGO -->
+        <a href="{{ route('home') }}" class="topnav-logo">
+            <span class="topnav-logo-lg">
+                <img src="{{ asset('assets/images/logo_sm_dark.png') }}" alt="" height="16"> <span
+                    class="text-white more-ls"> | INTELBOARD</span>
+            </span>
+            <span class="topnav-logo-sm">
+                <img src="{{ asset('assets/images/logo_sm_dark.png') }}" alt="" height="16">
+            </span>
+        </a>
 
-        <li class="dropdown notification-list">
-            <a id="user-menu-toggle" class="nav-link dropdown-toggle nav-user arrow-none me-0" data-bs-toggle="dropdown"
-                href="#" role="button" aria-haspopup="false" aria-expanded="false">
+        <ul class="list-unstyled topbar-menu float-end mb-0">
+            <li class="dropdown notification-list topbar-dropdown">
+                <a class="text-white nav-link dropdown-toggle arrow-none" data-bs-toggle="dropdown" href="#"
+                    role="button">
+                    @if ($currentLocale === 'fr')
+                        <img src="{{ asset('assets/images/flags/france.jpg') }}" alt="flag" height="12">
+                        <span class="text-white align-middle d-none d-sm-inline-block">Français</span>
+                    @else
+                        <img src="{{ asset('assets/images/flags/us.jpg') }}" alt="flag" height="12">
+                        <span class="text-white align-middle d-none d-sm-inline-block">English</span>
+                    @endif
+                    <i class="mdi mdi-chevron-down d-none d-sm-inline-block align-middle"></i>
+                </a>
+                <div class="dropdown-menu dropdown-menu-end dropdown-menu-animated topbar-dropdown-menu">
+                    @foreach (config('app.available_locales') as $locale)
+                        <a href="{{ route('lang.switch', ['locale' => $locale]) }}" class="dropdown-item notify-item">
+                            <img src="{{ asset("assets/images/flags/$locale.jpg") }}" alt="{{ strtoupper($locale) }}"
+                                class="me-1" height="12">
+                            @if ($locale === 'fr')
+                                Français
+                            @else
+                                English
+                            @endif
+                        </a>
+                    @endforeach
+                </div>
+            </li>
 
-                <span class="account-user-avatar d-lg-none">
-                    <span id="user-initials"
-                        class="text-white rounded-circle d-inline-flex align-items-center justify-content-center">
-                        {{ strtoupper(substr(Auth::user()->full_name, 0, 1)) }}{{ strtoupper(substr(explode(' ', Auth::user()->full_name)[1] ?? '', 0, 1)) }}
+            <li class="dropdown notification-list">
+                <a id="user-menu-toggle" class="nav-link dropdown-toggle nav-user arrow-none me-0"
+                    data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">
+
+                    <span class="account-user-avatar d-lg-none">
+                        <span id="user-initials"
+                            class="text-white rounded-circle d-inline-flex align-items-center justify-content-center">
+                            {{ strtoupper(substr(Auth::user()->full_name, 0, 1)) }}{{ strtoupper(substr(explode(' ', Auth::user()->full_name)[1] ?? '', 0, 1)) }}
+                        </span>
                     </span>
-                </span>
 
-                <span id="user-meta" class="d-none d-lg-block">
-                    <span class="text-white account-user-name">{{ Auth::user()->full_name }}</span>
-                    <span class="text-white account-position">{{ strtoupper(Auth::user()->role) }}</span>
-                </span>
-            </a>
-
-            <div class="dropdown-menu dropdown-menu-end dropdown-menu-animated topbar-dropdown-menu profile-dropdown">
-                <a href="{{ route('user.settings') }}" class="dropdown-item notify-item">
-                    <i class="mdi mdi-account-edit me-1"></i> Settings
+                    <span id="user-meta" class="d-none d-lg-block">
+                        <span class="text-white account-user-name">{{ Auth::user()->full_name }}</span>
+                        <span class="text-white account-position">{{ strtoupper(Auth::user()->role) }}</span>
+                    </span>
                 </a>
 
-                <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display:none;">
-                    @csrf
-                </form>
+                <div
+                    class="dropdown-menu dropdown-menu-end dropdown-menu-animated topbar-dropdown-menu profile-dropdown">
+                    <a href="{{ route('user.settings') }}" class="dropdown-item notify-item">
+                        <i class="mdi mdi-account-edit me-1"></i> Settings
+                    </a>
 
-                <a href="#" class="dropdown-item notify-item"
-                    onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                    <i class="mdi mdi-logout me-1"></i> Logout
-                </a>
+                    <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display:none;">
+                        @csrf
+                    </form>
+
+                    <a href="#" class="dropdown-item notify-item"
+                        onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                        <i class="mdi mdi-logout me-1"></i> Logout
+                    </a>
+                </div>
+            </li>
+        </ul>
+        <a class="navbar-toggle" data-bs-toggle="collapse" data-bs-target="#topnav-menu-content">
+            <div class="lines">
+                <span></span>
+                <span></span>
+                <span></span>
             </div>
-        </li>
-    </ul>
-
-    <button class="button-menu-mobile open-left text-white">
-        <i class="mdi mdi-menu"></i>
-    </button>
+        </a>
+    </div>
 </div>

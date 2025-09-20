@@ -1,24 +1,21 @@
-<div class="leftside-menu">
-    <a href="#" class="logo text-center logo-light">
-        <h3 class="text-white">Intelboard</h3>
-    </a>
-    <div class="h-100" id="leftside-menu-container" data-simplebar>
-        <ul class="side-nav">
-            <li class="side-nav-title side-nav-item">APPS</li>
-            <li class="side-nav-item">
-                <a href="{{ route('drivers') }}" class="side-nav-link">
-                    <i class="mdi mdi-car"></i>
-                    <span> {{ __('Drivers') }} </span>
-                </a>
-            </li>
-            <li class="side-nav-item">
-                <a href="{{ route('payments.index') }}" class="side-nav-link">
-                    <i class="mdi mdi-receipt"></i>
-                    <span> {{ __('Payments') }} </span>
-                </a>
-            </li>
-        </ul>
-        <div class="clearfix"></div>
-    </div>
+<div class="topnav">
+    <div class="container-fluid">
+        <nav class="navbar navbar-dark navbar-expand-lg topnav-menu">
 
+            <div class="collapse navbar-collapse" id="topnav-menu-content">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a href="{{ route('drivers') }}" class="nav-link text-white">
+                            <i class="mdi mdi-car"></i> {{ __('messages.drivers') }}
+                        </a>
+                    </li>
+                    <li class="nav-item mt-0">
+                        <a href="{{ route('payments.index') }}" class="nav-link text-white">
+                            <i class="mdi mdi-receipt"></i> {{ __('messages.payments') }}
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+    </div>
 </div>

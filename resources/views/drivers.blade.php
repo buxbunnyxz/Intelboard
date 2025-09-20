@@ -28,7 +28,7 @@
                 <thead class="table-dark">
                     <tr>
                         <th class="control"></th>
-                        <th class="status-col">
+                        <th class="status-col text-center" style="width:80px;">
                             <span class="d-inline d-md-none">{{ __('messages.active') }}</span>
                             <span class="d-none d-md-inline">#</span>
                         </th>
@@ -48,16 +48,14 @@
                         <tr>
                             <td></td>
                             <td class="text-center">
-                                <div>
-                                    <input type="checkbox" id="switch-driver-{{ $driver->id }}"
-                                        class="driver-active-toggle" data-id="{{ $driver->id }}"
-                                        data-url="{{ route('drivers.toggleActive', $driver->id) }}" data-switch="success"
-                                        {{ $driver->active ? 'checked' : '' }} />
-                                    <label for="switch-driver-{{ $driver->id }}"
-                                        data-on-label="{{ __('messages.active') }}"
-                                        data-off-label="{{ __('messages.inactive') ?: 'Inactive' }}"
-                                        class="mb-0 d-block driver-switch-label"></label>
+                                <div class="form-check form-switch">
+                                    <input type="checkbox" id="driver-switch-{{ $driver->id }}"
+                                        class="form-check-input driver-active-toggle" data-id="{{ $driver->id }}"
+                                        data-url="{{ route('drivers.toggleActive', $driver->id) }}"
+                                        {{ $driver->active ? 'checked' : '' }}>
+
                                 </div>
+
                             </td>
                             <td>
                                 {{ $driver->driver_id }} -

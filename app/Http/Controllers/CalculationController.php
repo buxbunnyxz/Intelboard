@@ -30,6 +30,9 @@ class CalculationController extends Controller
             'driver'      => $driver,
             'week'        => $week, // keep original for display
             'calculation' => $calculation,
+            // ✅ added prefill values
+            'vehiculeRentalPrice' => $driver->vehicule_rental_price ?? 0,
+            'brokerPercentage'    => $driver->broker_percentage ?? 0,
         ]);
     }
 
@@ -123,9 +126,9 @@ class CalculationController extends Controller
             ]);
         }
 
-return redirect()
-    ->route('drivers.show', ['id' => $driver->id])
-    ->with('status', __('messages.calculation_update_success'));
+        return redirect()
+            ->route('drivers.show', ['id' => $driver->id])
+            ->with('status', __('messages.calculation_update_success'));
     }
 
     public function uploadPdf(Request $request)
@@ -144,6 +147,12 @@ return redirect()
         $text            = $this->extractTextFromPdf(storage_path('app/public/' . $pdfPath));
         $totalInvoice    = $this->extractTotalInvoice($text);
         $parcelRowsCount = $this->countParcelsInvoicedRows($text);
+
+        // ✅ added: extract driver id from PDF text (C0U9622 → U9622)
+        $extractedDriverId = null;
+        if (preg_match('/Driver:\s*(C0\w+)/i', $text, $matches)) {
+            $extractedDriverId = strtoupper(trim(preg_replace('/^C0/', '', $matches[1])));
+        }
 
         // Ensure creation provides a default for non-nullable columns
         $calculation = Calculation::firstOrCreate(
@@ -177,9 +186,11 @@ return redirect()
         }
 
         return response()->json([
-            'total_invoice'     => $totalInvoice,
-            'parcel_rows_count' => $parcelRowsCount,
-            'pdf_path'          => $pdfPath,
+            'total_invoice'      => $totalInvoice,
+            'parcel_rows_count'  => $parcelRowsCount,
+            'pdf_path'           => $pdfPath,
+            'driver_id_request'  => $driverId,         // from request
+            'driver_id_pdf'      => $extractedDriverId // from PDF (if found)
         ]);
     }
 

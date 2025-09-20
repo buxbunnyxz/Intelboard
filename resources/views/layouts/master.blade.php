@@ -1,9 +1,10 @@
 @include('layouts.partials.header')
-@include('layouts.partials.sidebar')
+
 
 <div class="content-page">
     <div class="content">
         @include('layouts.partials.topbar')
+        @include('layouts.partials.sidebar')
 
         <div class="container-fluid">
             @yield('content')
