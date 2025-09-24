@@ -1,13 +1,9 @@
 @extends('layouts.master')
 
-@push('styles')
-    <link href="https://cdn.datatables.net/v/bs5/dt-2.0.8/r-3.0.2/datatables.min.css" rel="stylesheet">
-@endpush
-
 @section('content')
     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-3 mb-3">
         <h4 class="page-title m-0">{{ __('messages.drivers') }}</h4>
-        <button type="button" class="btn btn-info ms-auto" onclick="window.location='{{ route('newdriver') }}'">
+        <button type="button" class="btn btn-primary ms-auto" onclick="window.location='{{ route('newdriver') }}'">
             <i class="mdi mdi-plus me-1"></i> <span>{{ __('messages.add_driver_btn') }}</span>
         </button>
     </div>
@@ -22,66 +18,85 @@
         </div>
     </div>
 
-    <div class="card">
+    <div class="card darkbg">
         <div class="card-body">
-            <table class="table table-centered table-nowrap w-100" id="products-table">
-                <thead class="table-dark">
-                    <tr>
-                        <th class="control"></th>
-                        <th class="status-col text-center" style="width:80px;">
-                            <span class="d-inline d-md-none">{{ __('messages.active') }}</span>
-                            <span class="d-none d-md-inline">#</span>
-                        </th>
-                        <th>{{ __('messages.driver') }}</th>
-                        <th>{{ __('messages.phone') }}</th>
-                        <th>{{ __('messages.added_by') }}</th>
-                        <th>{{ __('messages.created_on') }}</th>
-                        <th class="text-center" style="width:120px;">{{ __('messages.actions') }}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach ($drivers as $driver)
-                        @php
-                            $addedByUser = \App\Models\User::find($driver->added_by);
-                            $firstName = explode(' ', trim($driver->full_name))[0] ?? $driver->full_name;
-                        @endphp
-                        <tr>
-                            <td></td>
-                            <td class="text-center">
-                                <div class="form-check form-switch">
-                                    <input type="checkbox" id="driver-switch-{{ $driver->id }}"
-                                        class="form-check-input driver-active-toggle" data-id="{{ $driver->id }}"
-                                        data-url="{{ route('drivers.toggleActive', $driver->id) }}"
-                                        {{ $driver->active ? 'checked' : '' }}>
+            <div class="default-table-area mx-minus-1 table-recent-orders">
+                <div class="table-responsive">
+                    <table class="table align-middle w-100" id="driversTable">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="fw-medium">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="flexCheckDefault1">
+                                    </div>
+                                </th>
+                                <th scope="col" class="fw-medium text-start">{{ __('messages.driver') }}</th>
+                                <th scope="col" class="fw-medium">{{ __('messages.phone') }}</th>
+                                <th scope="col" class="fw-medium">{{ __('messages.added_by') }}</th>
+                                <th scope="col" class="fw-medium">{{ __('messages.created_on') }}</th>
+                                <th scope="col" class="fw-medium ">{{ __('messages.actions') }}</th>
+                                <th scope="col" class="fw-medium">#</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($drivers as $driver)
+                                @php
+                                    $addedByUser = \App\Models\User::find($driver->added_by);
+                                    $firstName = explode(' ', trim($driver->full_name))[0] ?? $driver->full_name;
+                                @endphp
+                                <tr>
+                                    <td class="text-white" style="width: 62px;">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="flexCheckDefault2">
+                                        </div>
+                                    </td>
+                                    <td class="text-body">
+                                        <div class="d-flex align-items-center">
+                                            <div class="flex-grow-1 ms-0 position-relative top-0">
+                                                <h3 class="fw-medium mb-0 fs-16 text-white">
+                                                    {{ $driver->driver_id }} -
+                                                    <span class="d-inline d-md-none">{{ $firstName }}</span>
+                                                    <span class="d-none d-md-inline">{{ $driver->full_name }}</span>
+                                                </h3>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-white">{{ $driver->phone_number }}</td>
+                                    <td class="text-white">{{ $addedByUser ? $addedByUser->full_name : '' }}</td>
+                                    <td class="text-white text-start">
+                                        {{ \Carbon\Carbon::parse($driver->created_at)->format('d-m-y') }}
+                                    </td>
+                                    <td class="text-white ">
+                                        <a href="{{ route('drivers.show', $driver->id) }}" class="action-icon text-white"
+                                            title="{{ __('messages.view') }}">
+                                            <span class="material-icons">remove_red_eye</span>
+                                        </a>
+                                        <a href="{{ route('drivers.edit', $driver->id) }}" class="action-icon text-white"
+                                            title="{{ __('messages.edit') }}">
+                                            <span class="material-icons">create</span>
+                                        </a>
+                                        <form action="{{ route('drivers.delete', $driver->id) }}" method="POST"
+                                            class="d-inline m-0 p-0">
+                                            @csrf @method('DELETE')
+                                            <button type="submit"
+                                                class="action-icon text-danger border-0 bg-transparent p-0"
+                                                onclick="return confirm('{{ __('messages.confirm_delete_driver') }}')"
+                                                title="{{ __('messages.delete') }}">
+                                                <span class="material-icons">delete</span>
+                                            </button>
+                                        </form>
+                                    </td>
+                                    <td class="text-white">
+                                        <span
+                                            class="material-icons text{{ $driver->active ? '-success' : '-danger' }}">circle</span>
 
-                                </div>
-
-                            </td>
-                            <td>
-                                {{ $driver->driver_id }} -
-                                <span class="d-inline d-md-none">{{ $firstName }}</span>
-                                <span class="d-none d-md-inline">{{ $driver->full_name }}</span>
-                            </td>
-                            <td>{{ $driver->phone_number }}</td>
-                            <td>{{ $addedByUser ? $addedByUser->full_name : '' }}</td>
-                            <td>{{ \Carbon\Carbon::parse($driver->created_at)->format('d-m-y') }}</td>
-                            <td class="text-center">
-                                <a href="{{ route('drivers.show', $driver->id) }}" class="action-icon"
-                                    title="{{ __('messages.view') }}"><i class="mdi mdi-eye"></i></a>
-                                <a href="{{ route('drivers.edit', $driver->id) }}" class="action-icon"
-                                    title="{{ __('messages.edit') }}"><i class="mdi mdi-pencil"></i></a>
-                                <form action="{{ route('drivers.delete', $driver->id) }}" method="POST"
-                                    class="d-inline m-0 p-0">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" class="action-icon text-danger border-0 bg-transparent p-0"
-                                        onclick="return confirm('{{ __('messages.confirm_delete_driver') }}')"
-                                        title="{{ __('messages.delete') }}"><i class="mdi mdi-trash-can"></i></button>
-                                </form>
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 @endsection
@@ -91,19 +106,41 @@
     <script src="https://cdn.datatables.net/v/bs5/dt-2.0.8/r-3.0.2/datatables.min.js"></script>
     <script>
         $(function() {
-            const activeTitle = @json(__('messages.active'));
-            const activeWord = (function(w) {
-                return (w && w !== 'messages.active') ? w : 'Active';
-            })(@json(__('messages.active')));
-            const inactiveWord = (function(w) {
-                return (w && w !== 'messages.inactive') ? w : 'Inactive';
-            })(@json(__('messages.inactive')));
+            const locale = @json(app()->getLocale());
 
-            function isMobile() {
-                return window.matchMedia("(max-width: 576px)").matches;
+            function dtLanguage(loc) {
+                if (loc === 'fr') {
+                    return {
+                        aria: {
+                            sortAscending: ": activer pour trier la colonne par ordre croissant",
+                            sortDescending: ": activer pour trier la colonne par ordre décroissant"
+                        },
+                        paginate: {
+                            first: "Premier",
+                            previous: "&laquo;",
+                            next: "&raquo;",
+                            last: "Dernier"
+                        },
+                        emptyTable: "Aucune donnée disponible",
+                        info: "Affichage de _START_ à _END_ sur _TOTAL_ entrées",
+                        infoEmpty: "Affichage de 0 à 0 sur 0 entrée",
+                        infoFiltered: "(filtré à partir de _MAX_ entrées au total)",
+                        lengthMenu: "Afficher _MENU_ entrées",
+                        loadingRecords: "Chargement...",
+                        processing: "Traitement...",
+                        search: "Rechercher:",
+                        zeroRecords: "Aucun enregistrement correspondant trouvé"
+                    };
+                }
+                return {
+                    paginate: {
+                        previous: "&laquo;",
+                        next: "&raquo;"
+                    }
+                };
             }
 
-            const dt = $('#products-table').DataTable({
+            const dt = $('#driversTable').DataTable({
                 paging: true,
                 pageLength: 50,
                 lengthChange: false,
@@ -111,125 +148,57 @@
                 order: [
                     [2, 'asc']
                 ],
-                responsive: {
-                    details: {
-                        type: 'column',
-                        target: 'td.control',
-                        renderer: function(api, rowIdx, columns) {
-                            const rows = columns
-                                .filter(c => c.hidden)
-                                .map(c => {
-                                    if (c.title === activeTitle) {
-                                        // Always output without static text label; desktop label not needed anymore.
-                                        return `<div class="detail-active-line" data-active-field="1">${c.data}</div>`;
-                                    }
-                                    return `<div class="py-1"><strong>${c.title}:</strong> ${c.data}</div>`;
-                                })
-                                .join('');
-                            return rows ? `<div class="p-2 small dt-row-details">${rows}</div>` : false;
-                        }
-                    }
-                },
+                responsive: true,
                 columnDefs: [{
                         targets: 0,
-                        className: 'control dtr-control',
-                        orderable: false
-                    },
+                        width: "28px",
+                        className: "text-center",
+                        orderable: false,
+                        responsivePriority: 1
+                    }, // checkbox
                     {
                         targets: 1,
-                        responsivePriority: 10000,
-                        orderable: false
-                    },
+                        responsivePriority: 2
+                    }, // driver left-aligned
                     {
                         targets: 2,
-                        responsivePriority: 1
-                    },
+                        responsivePriority: 10000
+                    }, // phone
                     {
                         targets: 3,
-                        responsivePriority: 10002,
+                        responsivePriority: 10001,
                         orderable: false
-                    },
+                    }, // added by
                     {
                         targets: 4,
-                        responsivePriority: 10003,
+                        responsivePriority: 10002,
                         orderable: false
-                    },
+                    }, // created on
                     {
                         targets: 5,
-                        responsivePriority: 10004,
+                        responsivePriority: 3,
                         orderable: false
-                    },
+                    }, // actions
                     {
                         targets: 6,
-                        responsivePriority: 2,
-                        orderable: false
-                    }
+                        width: "28px",
+                        orderable: false,
+                        responsivePriority: 4
+                    } // status left-aligned
                 ],
-                dom: "<'row'<'col-12'tr>>" + "<'row'<'col-12'p>>",
-                language: {
-                    paginate: {
-                        previous: '&lt;',
-                        next: '&gt;'
-                    }
-                }
+
+                dom: "<'row'<'col-12'tr>>" +
+                    "<'row'<'col-12 d-flex justify-content-center'p>>" +
+                    "<'row'<'col-12 d-flex justify-content-center'i>>",
+                language: dtLanguage(locale)
             });
 
-            function normalizeSwitchLabels() {
-                const mobile = isMobile();
-                document.querySelectorAll('input.driver-active-toggle + label').forEach(label => {
-                    if (mobile) {
-                        // Remove text on mobile
-                        label.setAttribute('data-on-label', '');
-                        label.setAttribute('data-off-label', '');
-                        label.classList.add('switch-compact');
-                    } else {
-                        label.setAttribute('data-on-label', activeWord);
-                        label.setAttribute('data-off-label', inactiveWord);
-                        label.classList.remove('switch-compact');
-                    }
-                });
-            }
-
-            // Initial
-            normalizeSwitchLabels();
-
-            // Re-apply when responsive rows open/close
-            $('#products-table').on('responsive-display.dt', function() {
-                normalizeSwitchLabels();
-            });
-
-            // Resize listener
-            let resizeTimer;
-            window.addEventListener('resize', () => {
-                clearTimeout(resizeTimer);
-                resizeTimer = setTimeout(normalizeSwitchLabels, 120);
-            });
-
-            // Search
             $('#table-search-input').on('input', function() {
                 dt.search(this.value).draw();
             });
             $('#table-search-button').on('click', function() {
                 dt.search($('#table-search-input').val()).draw();
             });
-        });
-
-        // AJAX toggle
-        document.addEventListener('change', e => {
-            if (e.target.classList.contains('driver-active-toggle')) {
-                const cb = e.target;
-                fetch(cb.dataset.url, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        active: cb.checked ? 1 : 0
-                    })
-                }).catch(err => console.error('Status update failed', err));
-            }
         });
     </script>
 @endpush

@@ -1,26 +1,9 @@
-<footer class="footer">
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-md-12">
-                2024 -
-                <script>
-                    document.write(new Date().getFullYear())
-                </script> © Intelboard.ca
-            </div>
-        </div>
-    </div>
+<footer class="footer-area bg-white text-center rounded-10 rounded-bottom-0">
+    <p class="fs-16 text-body">
+        2024 -
+        <script>
+            document.write(new Date().getFullYear())
+        </script>
+        © <span class="text-secondary">Intelboard</span>
+    </p>
 </footer>
-
-</div> <!-- End content-page -->
-</div> <!-- End wrapper -->
-
-{{-- Place all vendor/app scripts here if needed for all pages --}}
-<script src="{{ asset('assets/js/vendor.min.js') }}"></script>
-<script src="{{ asset('assets/js/app.min.js') }}"></script>
-{{-- <script src="{{ asset('assets/js/vendor/dropzone.min.js') }}"></script> --}}
-
-{{-- Stack for page-specific scripts --}}
-@stack('scripts')
-</body>
-
-</html>

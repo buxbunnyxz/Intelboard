@@ -39,6 +39,7 @@ return [
     'register_with_google'  => 'Continue with Google',
     'register_with_apple'   => 'Continue with Apple',
     'or_use_email'          => 'OR USE EMAIL',
+    'logout'                => 'Logout',
 
     /*
     |--------------------------------------------------------------------------
@@ -135,6 +136,7 @@ return [
     'batch_upload'                   => 'Batch Invoice Upload',
     'drop_files_here'                => 'Drop files here',
     'click_to_upload'                => 'Click to upload',
+    'browse'                         => 'Browse',
     'batch_upload_success'           => 'Batch upload successful. Files are being processed.',
     'batch_upload_error'             => 'Batch upload failed. Please try again.',
     'uploaded_invoices_summary'      => 'Uploaded Invoices Summary',

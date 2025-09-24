@@ -39,6 +39,7 @@ return [
     'register_with_google'  => 'Continuer avec Google',
     'register_with_apple'   => 'Continuer avec Apple',
     'or_use_email'          => 'OU UTILISER L\'EMAIL',
+    'logout'                => 'Se déconnecter',
 
     /*
     |--------------------------------------------------------------------------
@@ -110,6 +111,7 @@ return [
     'batch_upload'                   => 'Téléversement groupé',
     'drop_files_here'                => 'Déposez les fichiers ici',
     'click_to_upload'                => 'Cliquez pour téléverser',
+    'browse'                         => 'Parcourir',
     'batch_upload_success'           => 'Le téléversement de lots est réussi. Les fichiers sont en cours de traitement.',
     'batch_upload_error'             => 'Échec du téléversement de lots. Veuillez réessayer.',
     'uploaded_invoices_summary'      => 'Récapitulatif des factures téléversées',

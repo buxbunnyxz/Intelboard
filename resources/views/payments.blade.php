@@ -2,9 +2,12 @@
 
 @push('styles')
     <link href="https://cdn.datatables.net/v/bs5/dt-2.0.8/r-3.0.2/datatables.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/dropzone.min.css"
-        crossorigin="anonymous" referrerpolicy="no-referrer" />
-    {{-- Moved inline CSS to public/assets/css/custom.css --}}
+    <style>
+        .drag-image.active {
+            border: 2px dashed #007bff;
+            background-color: #f8f9fa;
+        }
+    </style>
 @endpush
 
 @section('content')
@@ -13,53 +16,68 @@
             <h4 class="page-title m-0">{{ __('messages.payments_page_title') }}</h4>
         </div>
 
-        <div id="upload-status-alert-placeholder" class="mt-3"></div>
-
-        <div id="loader-div" class="alert alert-dark bg-dark text-light border-0 p-5 text-center">
-            <div class="d-flex align-items-center justify-content-center gap-3">
-                <strong class="fs-5">{{ __('messages.payments_processing_uploads') }}</strong>
-                <div class="spinner-border" role="status" aria-hidden="true"></div>
-            </div>
-            <div class="small mt-2">{{ __('messages.payments_processing_wait') }}</div>
-        </div>
-
-        <div class="card mb-4" id="upload-card">
-            <div class="card-header">
+        {{-- Upload card --}}
+        <div class="card darkbg border border-dark rounded-10 mb-4" id="upload-card">
+            <div class="card-header bg-secondary text-center text-light">
                 <h5 class="card-title mb-0">{{ __('messages.batch_upload') }}</h5>
             </div>
-            <div class="card-body">
-                <form action="{{ route('payments.upload') }}" method="post" class="dropzone" id="batch-upload-dropzone"
-                    enctype="multipart/form-data">
+            <div class="card-body text-center">
+                <form id="upload-form" action="{{ route('payments.upload') }}" method="POST" enctype="multipart/form-data"
+                    class="w-100">
                     @csrf
-                    <div class="dz-message needsclick">
-                        <i class="h1 text-muted dripicons-cloud-upload"></i>
-                        <h3>{{ __('messages.drop_files_here') }}</h3>
-                        <span class="text-muted font-13">{{ __('messages.pdf_only_max') }}</span>
+                    <div class="form-group mb-0 only-file-upload w-100" id="file-upload">
+                        <label for="upload-files" class="w-100 mb-0">
+                            <div class="drag-image text-center w-100" id="upload-container" style="cursor: pointer;">
+                                <div class="icon mb-3"><i class="fas fa-cloud-upload-alt fa-2x"></i></div>
+                                <h6 class="mb-1">Drag & Drop File Here</h6>
+                                <span class="d-block mb-3">OR</span>
+                                <button type="button" class="btn btn-primary"
+                                    id="upload-browse-button">{{ __('messages.browse') }}</button>
+                                <input type="file" id="upload-files" name="files[]" hidden multiple>
+                            </div>
+                        </label>
+                        <button type="submit" class="btn btn-primary d-none" id="upload-submit">Upload</button>
+                    </div>
+
+                    {{-- Progress Bar --}}
+                    <div id="progress-container" class="mt-3" style="display:none;">
+                        <div class="progress" role="progressbar" aria-label="Upload progress" aria-valuenow="0"
+                            aria-valuemin="0" aria-valuemax="100">
+                            <div id="progress-bar" class="progress-bar" style="width: 0%"></div>
+                        </div>
+                        <p id="progress-text" class="mt-2 text-white"></p>
                     </div>
                 </form>
             </div>
         </div>
 
-        <!-- Results -->
-        <div class="card d-none" id="results-card">
-            <div class="card-header d-flex align-items-center justify-content-between">
-                <h5 class="card-title mb-0">{{ __('messages.uploaded_invoices_summary') }}</h5>
+        {{-- Results table --}}
+        <div class="card darkbg border border-dark rounded-10 mb-4" id="resultsTable" style="display:none;">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 p-20">
+                <div class="d-flex flex-wrap gap-2 gap-xxl-5 align-items-center">
+                    <form class="table-src-form position-relative m-0">
+                        <input type="text" class="form-control w-340" placeholder="Search here..." id="ext-search">
+                        <div
+                            class="src-btn position-absolute top-50 start-0 translate-middle-y bg-transparent p-0 border-0">
+                            <span class="material-symbols-outlined">search</span>
+                        </div>
+                    </form>
+                </div>
             </div>
-            <div class="card-body">
-                <p class="text-muted small mb-3" id="summary-line"></p>
+
+            <div class="default-table-area mx-minus-1 table-product-list">
                 <div class="table-responsive">
-                    <table id="uploads-table" class="table table-bordered table-nowrap w-100 align-middle">
-                        <thead class="table-dark">
+                    <table class="table align-middle" id="resultsDataTable">
+                        <thead>
                             <tr>
-                                <th class="control"></th>
-                                <th class="select-col"><input type="checkbox" id="select-all" /></th>
-                                <th>{{ __('messages.id_name') }}</th>
-                                <th>{{ __('messages.total_invoice') }}</th>
-                                <th>{{ __('messages.daysworked') }}</th>
-                                <th>{{ __('messages.total_parcels') }}</th>
+                                <th scope="col" class="fw-medium">{{ __('messages.id_name') }}</th>
+                                <th scope="col" class="fw-medium">{{ __('messages.total_invoice') }}</th>
+                                <th scope="col" class="fw-medium">{{ __('messages.daysworked') }}</th>
+                                <th scope="col" class="fw-medium">{{ __('messages.total_parcels') }}</th>
                             </tr>
                         </thead>
-                        <tbody></tbody>
+                        <tbody id="resultsBody">
+                        </tbody>
                     </table>
                 </div>
             </div>
@@ -70,281 +88,212 @@
 @push('scripts')
     <script src="https://cdn.datatables.net/v/bs5/dt-2.0.8/r-3.0.2/datatables.min.js"></script>
     <script>
-        Dropzone.autoDiscover = false;
-
-        const uploadCard = document.getElementById("upload-card");
-        const resultsCard = document.getElementById("results-card");
-        const summaryLine = document.getElementById("summary-line");
-        const loaderDiv = document.getElementById("loader-div");
-        const alertPlaceholder = document.getElementById("upload-status-alert-placeholder");
-        const selectAll = document.getElementById('select-all');
-
-        loaderDiv.style.display = "none";
-        loaderDiv.style.opacity = 0;
-
-        function fadeOut(el, duration = 250, cb) {
-            el.style.transition = `opacity ${duration}ms`;
-            el.style.opacity = 0;
-            setTimeout(() => {
-                el.classList.add('d-none');
-                cb && cb();
-            }, duration);
-        }
-
-        function fadeIn(el, duration = 250) {
-            el.classList.remove('d-none');
-            el.style.opacity = 0;
-            el.style.transition = `opacity ${duration}ms`;
-            requestAnimationFrame(() => el.style.opacity = 1);
-        }
-
-        const driverMap = new Map();
-        let dt = null;
-
-        function ensureDataTable() {
-            if (dt) return;
-            dt = new DataTable('#uploads-table', {
-                paging: true,
-                searching: true,
-                info: true,
-                pageLength: 50,
-                lengthMenu: [
-                    [50, 10, 25, 100, -1],
-                    [50, 10, 25, 100, 'All']
-                ],
-                order: [
-                    [2, 'asc']
-                ],
-                dom: '<"dt-top d-flex align-items-center"l f>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
-                language: {
-                    search: '',
-                    searchPlaceholder: 'Search',
-                    lengthMenu: '_MENU_'
-                },
-                responsive: {
-                    breakpoints: [{
-                            name: 'mobile',
-                            width: 0
-                        },
-                        {
-                            name: 'tablet',
-                            width: 576
-                        },
-                        {
-                            name: 'desktop',
-                            width: 992
-                        }
-                    ],
-                    details: {
-                        type: 'column',
-                        target: 'td.control',
-                        renderer: function(api, rowIdx, columns) {
-                            const hidden = columns
-                                .filter(c => c.hidden)
-                                .map(c => `<div><strong>${c.title}:</strong> ${c.data}</div>`).join('');
-                            return hidden ? `<div class="dt-row-details">${hidden}</div>` : '';
-                        }
-                    }
-                },
-                columnDefs: [{
-                        targets: 0,
-                        className: 'control dtr-control all',
-                        orderable: false
-                    },
-                    {
-                        targets: 1,
-                        className: 'select-col all',
-                        orderable: false,
-                        width: '46px'
-                    },
-                    {
-                        targets: 2,
-                        className: 'all'
-                    },
-                    {
-                        targets: 3,
-                        className: 'min-tablet text-end'
-                    },
-                    {
-                        targets: 4,
-                        className: 'min-tablet text-end'
-                    },
-                    {
-                        targets: 5,
-                        className: 'min-tablet text-end'
-                    }
-                ]
-            });
-
-            // Post-init DOM tweaks (ensure placeholder + remove residual text)
-            const filterLabel = document.querySelector('#uploads-table_filter label');
-            if (filterLabel) {
-                const input = filterLabel.querySelector('input');
-                if (input) input.setAttribute('placeholder', 'Search');
-                // Remove any stray text nodes (like "Search:")
-                [...filterLabel.childNodes].forEach(n => {
-                    if (n.nodeType === 3) n.textContent = '';
-                });
-            }
-            const lengthLabel = document.querySelector('.dataTables_length label');
-            if (lengthLabel) {
-                // Remove any text around the select (like "entries per page")
-                [...lengthLabel.childNodes].forEach(n => {
-                    if (n.nodeType === 3) n.textContent = '';
-                });
-            }
-        }
-
-        function formatMoney(val) {
-            if (val === 'N/A' || val == null || val === '') return 'N/A';
-            const num = parseFloat(String(val).replace(/,/g, ''));
-            return isNaN(num) ? 'N/A' : '$' + num.toFixed(2);
-        }
-
-        function sumMoney(a, b) {
-            const pa = parseFloat(String(a).replace(/,/g, ''));
-            const pb = parseFloat(String(b).replace(/,/g, ''));
-            if (isNaN(pa) && isNaN(pb)) return 'N/A';
-            if (isNaN(pa)) return pb.toFixed ? pb.toFixed(2) : pb;
-            if (isNaN(pb)) return pa.toFixed ? pa.toFixed(2) : pa;
-            return (pa + pb).toFixed(2);
-        }
-
-        function sumInt(a, b) {
-            return (parseInt(a) || 0) + (parseInt(b) || 0);
-        }
-
-        function upsertRow(d) {
-            ensureDataTable();
-            const ex = driverMap.get(d.driver_id);
-            if (ex) {
-                ex.invoice_value = sumMoney(ex.invoice_value, d.invoice_value);
-                ex.days_worked += d.days_worked;
-                ex.total_parcels = sumInt(ex.total_parcels, d.total_parcels);
-                ex.found = ex.found || d.found;
-                if (d.driver_name && !ex.driver_name) ex.driver_name = d.driver_name;
-            } else {
-                driverMap.set(d.driver_id, {
-                    ...d
-                });
-            }
-            redrawTable();
-        }
-
-        function getFoundCount() {
-            let c = 0;
-            driverMap.forEach(v => v.found && c++);
-            return c;
-        }
-
-        function redrawTable() {
-            ensureDataTable();
-            dt.clear();
-            [...driverMap.values()].sort((a, b) => a.driver_id.localeCompare(b.driver_id))
-                .forEach(r => {
-                    const label = r.found ? `${r.driver_id} - ${r.driver_name}` : `${r.driver_id} (Not Found)`;
-                    dt.row.add([
-                        '',
-                        `<input type="checkbox" class="row-select" value="${r.driver_id}">`,
-                        label,
-                        formatMoney(r.invoice_value),
-                        r.days_worked,
-                        r.total_parcels
-                    ]);
-                });
-            dt.draw(false);
-            updateSummary();
-        }
-
-        const completedTpl = @json(__('messages.payments_completed_valid_drivers', ['count' => ':count']));
-        const summaryPattern = @json(__('messages.payments_summary_pattern'));
-
-        function updateSummary() {
-            const found = getFoundCount();
-            summaryLine.textContent = summaryPattern
-                .replace(':drivers', driverMap.size)
-                .replace(':found', found)
-                .replace(':not_found', driverMap.size - found);
-        }
-
-        // Re-apply select column class after each draw
         document.addEventListener('DOMContentLoaded', () => {
-            ensureDataTable();
-            dt.on('draw', () => {
-                document.querySelectorAll('#uploads-table tbody tr').forEach(tr => {
-                    const td = tr.querySelector('td:nth-child(2)');
-                    if (td) td.classList.add('select-col');
-                });
-            });
-        });
+            const uploadInput = document.getElementById('upload-files');
+            const uploadForm = document.getElementById('upload-form');
+            const browseButton = document.getElementById('upload-browse-button');
+            const progressContainer = document.getElementById('progress-container');
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            const uploadCard = document.getElementById('upload-card');
+            const resultsTable = document.getElementById('resultsTable');
+            const resultsBody = document.getElementById('resultsBody');
+            const uploadContainer = document.getElementById('upload-container');
+            const extSearch = document.getElementById('ext-search');
 
-        document.addEventListener('change', e => {
-            if (e.target === selectAll) {
-                document.querySelectorAll('#uploads-table tbody .row-select')
-                    .forEach(cb => cb.checked = selectAll.checked);
+            const locale = '{{ app()->getLocale() }}';
+            let resultsDT = null;
+
+            function dtLanguage(loc) {
+                if (loc === 'fr') {
+                    return {
+                        aria: {
+                            sortAscending: ": activer pour trier la colonne par ordre croissant",
+                            sortDescending: ": activer pour trier la colonne par ordre décroissant"
+                        },
+                        paginate: {
+                            first: "Premier",
+                            previous: "Précédent",
+                            next: "Suivant",
+                            last: "Dernier"
+                        },
+                        emptyTable: "Aucune donnée disponible",
+                        info: "Affichage de _START_ à _END_ sur _TOTAL_ entrées",
+                        infoEmpty: "Affichage de 0 à 0 sur 0 entrée",
+                        infoFiltered: "(filtré à partir de _MAX_ entrées au total)",
+                        lengthMenu: "Afficher _MENU_ entrées",
+                        loadingRecords: "Chargement...",
+                        processing: "Traitement...",
+                        search: "Rechercher:",
+                        zeroRecords: "Aucun enregistrement correspondant trouvé"
+                    };
+                }
+                return {}; // default (English)
             }
-        });
 
-        let loaderShown = false;
-        let uploadStartTime = null;
-        const MIN_LOADER_MS = 5000;
+            if (browseButton && uploadInput) {
+                browseButton.addEventListener('click', e => {
+                    e.preventDefault();
+                    uploadInput.click();
+                });
+            }
 
-        const dz = new Dropzone("#batch-upload-dropzone", {
-            url: "{{ route('payments.upload') }}",
-            paramName: "files",
-            maxFilesize: 5,
-            acceptedFiles: ".pdf",
-            addRemoveLinks: true,
-            parallelUploads: 3,
-            autoProcessQueue: true,
-            init: function() {
-                this.on("sending", () => {
-                    if (!loaderShown) {
-                        loaderShown = true;
-                        uploadStartTime = Date.now();
-                        fadeOut(uploadCard, 150, () => {
-                            loaderDiv.classList.remove('d-none');
-                            loaderDiv.style.display = 'block';
-                            requestAnimationFrame(() => loaderDiv.style.opacity = 1);
+            if (uploadForm && uploadInput) {
+                uploadInput.addEventListener('change', () => {
+                    if (uploadInput.files.length) uploadFiles();
+                });
+
+                uploadContainer.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    uploadContainer.classList.add('active');
+                });
+                uploadContainer.addEventListener('dragleave', (e) => {
+                    e.preventDefault();
+                    uploadContainer.classList.remove('active');
+                });
+                uploadContainer.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    uploadContainer.classList.remove('active');
+                    uploadInput.files = e.dataTransfer.files;
+                    uploadFiles();
+                });
+
+                function setProcessingUI(active) {
+                    if (active) {
+                        progressBar.classList.add('progress-bar-striped', 'progress-bar-animated');
+                        progressText.textContent = 'Processing on server...';
+                    } else {
+                        progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+                    }
+                }
+
+                function initDataTable() {
+                    if (resultsDT) {
+                        resultsDT.destroy();
+                    }
+                    resultsDT = new DataTable('#resultsDataTable', {
+                        responsive: true,
+                        paging: true,
+                        searching: true,
+                        info: true,
+                        order: [],
+                        stripeClasses: [],
+                        language: dtLanguage(locale),
+                        // center pagination + info using Bootstrap utility classes
+                        dom: 't' +
+                            '<"mt-3 d-flex justify-content-center"p>' +
+                            '<"mt-2 d-flex justify-content-center"i>'
+                    });
+
+                    if (extSearch) {
+                        extSearch.addEventListener('keyup', () => {
+                            resultsDT.search(extSearch.value).draw();
                         });
                     }
-                });
+                }
 
-                this.on("success", (file, response) => {
-                    if (response?.success && response?.uploaded?.driver_id) {
-                        const up = response.uploaded;
-                        upsertRow({
-                            driver_id: up.driver_id,
-                            driver_name: up.driver?.full_name || '',
-                            invoice_value: up.invoice_value,
-                            days_worked: parseInt(up.days_worked ?? up.parcels_qty_count) || 0,
-                            total_parcels: up.total_parcels === 'N/A' ? 'N/A' : parseInt(up
-                                .total_parcels ?? up.parcels_qty_total) || 0,
-                            found: !!up.driver
-                        });
-                    }
-                });
+                function uploadFiles() {
+                    const formData = new FormData(uploadForm);
+                    const files = Array.from(uploadInput.files || []);
+                    const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
 
-                this.on("error", (file, err) => console.warn("Upload error:", file.name, err));
+                    progressContainer.style.display = 'block';
+                    setProcessingUI(false);
+                    progressBar.style.width = '0%';
+                    progressBar.setAttribute('aria-valuenow', 0);
+                    progressText.textContent = 'Preparing upload...';
 
-                this.on("queuecomplete", () => {
-                    const elapsed = Date.now() - uploadStartTime;
-                    const remaining = Math.max(0, MIN_LOADER_MS - elapsed);
-                    setTimeout(() => {
-                        loaderDiv.style.opacity = 0;
-                        setTimeout(() => {
-                            loaderDiv.style.display = "none";
-                            fadeIn(resultsCard, 250);
-                            const valid = getFoundCount();
-                            const msg = completedTpl.replace(':count', valid);
-                            alertPlaceholder.innerHTML = `
-                              <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
-                                <strong>${msg}</strong>
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                              </div>`;
-                        }, 250);
-                    }, remaining);
-                });
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('POST', uploadForm.action);
+                    xhr.responseType = 'json';
+
+                    let lastPercent = 0;
+                    const updateProgress = percent => {
+                        const bounded = Math.max(lastPercent, Math.min(Math.round(percent), 99));
+                        lastPercent = bounded;
+                        progressBar.style.width = `${bounded}%`;
+                        progressBar.setAttribute('aria-valuenow', bounded);
+                        progressText.textContent = `Uploading ${bounded}%...`;
+                    };
+
+                    xhr.upload.addEventListener('progress', e => {
+                        if (e.lengthComputable && e.total > 0) {
+                            updateProgress((e.loaded / e.total) * 100);
+                        } else if (totalBytes > 0) {
+                            updateProgress((e.loaded / totalBytes) * 100);
+                        } else {
+                            setProcessingUI(true);
+                            progressText.textContent = 'Uploading...';
+                        }
+                    });
+
+                    xhr.upload.addEventListener('load', () => {
+                        setProcessingUI(true);
+                        progressText.textContent = 'Processing on server...';
+                    });
+
+                    xhr.addEventListener('readystatechange', () => {
+                        if (xhr.readyState > XMLHttpRequest.HEADERS_RECEIVED && lastPercent < 99) {
+                            setProcessingUI(true);
+                        }
+                    });
+
+                    xhr.addEventListener('load', () => {
+                        setProcessingUI(false);
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            try {
+                                progressBar.style.width = '100%';
+                                progressBar.setAttribute('aria-valuenow', 100);
+                                progressText.textContent = 'Upload complete';
+
+                                const data = xhr.response ?? JSON.parse(xhr.responseText);
+
+                                setTimeout(() => {
+                                    uploadCard.style.display = 'none';
+                                    resultsTable.style.display = 'block';
+                                    progressContainer.style.display = 'none';
+
+                                    resultsBody.innerHTML = '';
+                                    data.forEach(row => {
+                                        const tr = document.createElement('tr');
+                                        tr.classList.add('text-white');
+
+                                        const totalParcels = Number.isFinite(Number(row
+                                            .total_parcels)) ? Number(row
+                                            .total_parcels) : 0;
+
+                                        tr.innerHTML = `
+        <td class="text-white">${row.driver_id} - ${row.full_name}</td>
+        <td class="text-white">${row.invoice_total} $</td>
+        <td class="text-white">${row.days_with_parcels}</td>
+        <td class="text-white">${totalParcels}</td>
+    `;
+                                        resultsBody.appendChild(tr);
+                                    });
+
+
+                                    initDataTable();
+                                }, 300);
+                            } catch (err) {
+                                console.error('Error processing JSON response:', err);
+                                progressText.textContent = 'Error processing response.';
+                            }
+                        } else {
+                            console.error('Upload failed with status:', xhr.status);
+                            progressText.textContent = 'Upload failed.';
+                        }
+                    });
+
+                    xhr.addEventListener('error', () => {
+                        setProcessingUI(false);
+                        console.error('Network error during upload.');
+                        progressText.textContent = 'Network error.';
+                    });
+
+                    const csrf = document.querySelector('meta[name="csrf-token"]');
+                    if (csrf) xhr.setRequestHeader('X-CSRF-TOKEN', csrf.getAttribute('content'));
+                    xhr.send(formData);
+                }
             }
         });
     </script>

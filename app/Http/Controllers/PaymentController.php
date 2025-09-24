@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Driver;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Smalot\PdfParser\Parser; // Composer: smalot/pdfparser
+use App\Models\Driver;
 use App\Models\Calculation;
+use Smalot\PdfParser\Parser;
 
 class PaymentController extends Controller
 {
@@ -16,110 +15,142 @@ class PaymentController extends Controller
         return view('payments', compact('drivers'));
     }
 
-        public function show($driver_id, $week)
+    public function show($driver_id, $week)
     {
         $driver = Driver::findOrFail($driver_id);
+        $weekNumber = $this->toWeekNumber($week);
 
-        if (is_numeric($week)) {
-            $weekNumber = (int) $week;
-        } elseif (preg_match('/(\d{1,2})$/', (string) $week, $m)) {
-            $weekNumber = (int) $m[1];
-        } else {
-            $weekNumber = (int) preg_replace('/\D+/', '', (string) $week);
-        }
-
-        $calculation = Calculation::where('driver_id', $driver_id)
+        $calculation = Calculation::where('driver_id', $driver->id)
             ->where('week_number', $weekNumber)
-            ->firstOrFail();
+            ->first();
 
-        return view('paydetails', compact('driver', 'calculation', 'week'));
+        return view('paydetails', [
+            'driver' => $driver,
+            'week' => $week,
+            'calculation' => $calculation,
+        ]);
+    }
+
+    private function toWeekNumber($week)
+    {
+        return (int) preg_replace('/[^0-9]/', '', $week);
     }
 
     public function batchUpload(Request $request)
     {
-        try {
-            $request->validate([
-                'files' => 'required|file|mimes:pdf|max:5120',
-            ]);
+        $request->validate([
+            'files' => 'required',
+            'files.*' => 'file|mimes:pdf|max:5120',
+        ]);
 
-            $file = $request->file('files');
-            $path = Storage::disk('public')->putFile('paystubs', $file);
+        $files = $request->file('files', []);
+        $files = is_array($files) ? $files : [$files];
 
-            $filename = $file->getClientOriginalName();
-            $parts = explode('-', pathinfo($filename, PATHINFO_FILENAME));
-            $rawDriverId = $parts[2] ?? $filename;
-            $driverId = strtoupper(trim(preg_replace('/^C0/', '', $rawDriverId)));
+        $parser = new Parser();
+        $results = [];
+
+        foreach ($files as $file) {
+            if (!$file) {
+                continue;
+            }
+
+            $filename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+
+            // Example: 2025-32-C0U9622-Z0X1231-MONT.pdf => U9622
+            preg_match('/C0([A-Z]\d+)/i', $filename, $matches);
+            $driverId = isset($matches[1]) ? strtoupper($matches[1]) : null;
+
+            if (!$driverId) {
+                continue;
+            }
 
             $driver = Driver::where('driver_id', $driverId)->first();
 
-            $parser = new Parser();
-            $pdf = $parser->parseFile($file->getPathname());
-            $pages = $pdf->getPages();
-            $firstPageText = $pages[0]->getText();
-
-            // Total invoice (keep logic; assumed red in PDF)
-            if (preg_match('/Total invoice.*?\$?([\d,]+\.\d{2})/i', $firstPageText, $matches)) {
-                $invoiceValue = $matches[1];
-            } else {
-                preg_match_all('/\$([\d,]+\.\d{2})/', $firstPageText, $allMatches);
-                if (!empty($allMatches[1])) {
-                    $maxValue = 0.0;
-                    foreach ($allMatches[1] as $val) {
-                        $num = floatval(str_replace(',', '', $val));
-                        if ($num > $maxValue) $maxValue = $num;
-                    }
-                    $invoiceValue = number_format($maxValue, 2, '.', '');
-                } else {
-                    $invoiceValue = 'N/A';
+            $text = '';
+            try {
+                $pdf = $parser->parseFile($file->getPathname());
+                foreach ($pdf->getPages() as $page) {
+                    $text .= "\n" . $page->getText();
                 }
+            } catch (\Throwable $e) {
+                // keep $text empty to allow graceful fallback
             }
 
-            // Total parcels
-            if (preg_match('/Total\s+\d+\s+([\d,]+)\s+\$[\d,]+\.\d{2}/i', $firstPageText, $matches)) {
-                $parcelsQtyTotal = str_replace(',', '', $matches[1]);
-            } elseif (preg_match('/Total\s+(\d{1,})\s+([\d,]{1,})/i', $firstPageText, $matches)) {
-                $parcelsQtyTotal = str_replace(',', '', $matches[2]);
-            } else {
-                $parcelsQtyTotal = 'N/A';
-            }
+            $invoiceTotal = $this->extractInvoiceTotal($text);
+            [$daysWithParcels, $totalParcels] = $this->extractWorkStats($text);
+            $formattedInvoice = $invoiceTotal !== null ? number_format($invoiceTotal, 2, '.', '') : null;
 
-            // Days worked = count rows with parcels qty > 0
-            $parcelsQtyCount = 0;
-            if (preg_match_all('/(\d{4}-\d{2}-\d{2})\s+\d+\s+(\d+)\s+\$/', $firstPageText, $matches)) {
-                foreach ($matches[2] as $qty) {
-                    if (intval($qty) > 0) $parcelsQtyCount++;
-                }
-            }
-
-            $response = [
-                'success' => true,
-                'uploaded' => [
-                    'filename' => $filename,
-                    'driver_id' => $driverId,
-                    'invoice_value' => $invoiceValue,
-                    'total_parcels' => $parcelsQtyTotal,
-                    'days_worked' => $parcelsQtyCount,          // explicit key
-                    'parcels_qty_total' => $parcelsQtyTotal,    // backward compat
-                    'parcels_qty_count' => $parcelsQtyCount,    // backward compat
-                ],
+            $results[] = [
+                'driver_id' => $driverId,
+                'full_name' => $driver?->full_name,
+                'invoice_total' => $formattedInvoice,
+                'days_with_parcels' => $daysWithParcels,
+                'total_parcels' => $totalParcels,
             ];
+        }
 
-            if ($driver) {
-                $response['uploaded']['driver'] = [
-                    'driver_id' => $driver->driver_id,
-                    'full_name' => $driver->full_name,
-                ];
-            } else {
-                $response['warning'] = 'Driver ID "' . $driverId . '" not found.';
+        return response()->json($results);
+    }
+
+    private function extractInvoiceTotal(string $text): ?float
+    {
+        if ($text === '') {
+            return null;
+        }
+
+        if (preg_match_all('/Total\s+invoice[^\$]*\$([0-9,]+\.\d{2})/i', $text, $matches) && !empty($matches[1])) {
+            $raw = str_replace(',', '', end($matches[1]));
+            return (float) $raw;
+        }
+
+        if (preg_match_all('/\$([0-9,]+\.\d{2})/', $text, $fallback) && !empty($fallback[1])) {
+            $max = 0.0;
+            foreach ($fallback[1] as $value) {
+                $numeric = (float) str_replace(',', '', $value);
+                if ($numeric > $max) {
+                    $max = $numeric;
+                }
+            }
+            return $max ?: null;
+        }
+
+        return null;
+    }
+
+    private function extractWorkStats(string $text): array
+    {
+        $daysWorked = 0;
+        $totalParcels = 0;
+
+        if ($text === '') {
+            return [$daysWorked, $totalParcels];
+        }
+
+        $segment = $text;
+        if (preg_match('/Transaction summary(.*?)(?:Manual Fees Detail|Total Cancellation|Transaction details)/is', $text, $section)) {
+            $segment = $section[1];
+        }
+
+        $lines = preg_split("/(\r\n|\r|\n)/", $segment);
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line === '' || !preg_match('/^\d{4}-\d{2}-\d{2}/', $line)) {
+                continue;
             }
 
-            return response()->json($response);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'An unexpected error occurred.',
-                'error' => $e->getMessage(),
-            ], 500);
+            if (preg_match('/^\d{4}-\d{2}-\d{2}\s+\d+\s+([0-9,]+)\s+\$[0-9,]+\.\d{2}/', $line, $match)) {
+                $qty = (int) str_replace(',', '', $match[1]);
+                $totalParcels += $qty;
+                if ($qty > 0) {
+                    $daysWorked++;
+                }
+            }
         }
+
+        if ($totalParcels === 0 && preg_match('/Total\s+\d+\s+([0-9,]+)/i', $segment, $totalMatch)) {
+            $totalParcels = (int) str_replace(',', '', $totalMatch[1]);
+        }
+
+        return [$daysWorked, $totalParcels];
     }
 }
